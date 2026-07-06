@@ -1,17 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
 
 func main() {
-	matches := gogoCmd().Matches(os.Args)
+	cmd := gogoCmd()
+	matches := cmd.Apply(os.Args)
 	if matches.HasFlag("help") {
-		
+		fmt.Print(cmd.HelpMessage(""))
 	}
 	if matches.HasFlag("version") {
-		
+		fmt.Printf("gogo v%s", cmd.Version)
+	}
+	if matches.Subcommand == nil {
+		return
 	}
 	switch matches.Subcommand.Name {
 	case "search":
@@ -30,10 +35,6 @@ func gogoCmd() *Command {
 			SetShort('h').
 			SetLong("help").
 			SetAbout("Show help message")).
-		AddFlag(NewFlag("version").
-			SetShort('v').
-			SetLong("version").
-			SetAbout("Show program version")).
 		AddSubcommand(NewCommand("search").
 			AddFlag(NewFlag("limit").
 				SetShort('l').
@@ -50,9 +51,11 @@ type Command struct {
 	Name        string
 	Author      string
 	Version     string
+	About       string
 	Help        string
 	Flags       []*Flag
 	Subcommands []*Command
+	Action      func(flags []Flag, )
 }
 
 func NewCommand(name string) *Command {
@@ -67,6 +70,16 @@ func (c *Command) SetAuthor(author string) *Command {
 }
 
 func (c *Command) SetVersion(version string) *Command {
+	versionFlag := NewFlag("version").
+		SetShort('v').
+		SetLong("version").
+		SetAbout("Show program version").
+		SetAction(func(_ string) {
+			fmt.Printf("%s v%s", c.Name, version)
+			os.Exit(0)
+		})
+
+	c.Flags = append(c.Flags, versionFlag)
 	c.Version = version
 	return c
 }
@@ -86,28 +99,30 @@ func (c *Command) AddSubcommand(cmd *Command) *Command {
 	return c
 }
 
-func (c *Command) Matches(args []string) *CmdMatches {
-	iter := NewArgIterator(args)
-	return c.matches(iter)
+func (c *Command) HelpMessage(_ string) string {
+	return fmt.Sprintf("%s v%s\n%s\n%s\n", c.Name, c.Version, c.Author, c.About)
 }
 
-func (c *Command) matches(iter *ArgIterator) *CmdMatches {
+func (c *Command) Apply(args []string) *CmdMatches {
+	iter := NewArgIterator(args)
+	return c.apply(iter)
+}
+
+func (c *Command) apply(iter *ArgIterator) *CmdMatches {
 	matches := NewCmdMatches(iter.Next())
 
 	if iter.NextIsFlag() {
 		for _, flag := range c.Flags {
-			log.Printf("checking %+v\n", *flag)
 			if match := flag.Matches(iter); match != nil {
-				matches.Flags[flag.Name] = *match
+				matches.Flags = append(matches.Flags, *match)
 				break
 			}
 		}
 	} else {
 		// next is subcommand
 		for _, sub := range c.Subcommands {
-			log.Printf("checking subcommand %s for %s\n", sub.Name, iter.Peek())
 			if sub.Name == iter.Peek() {
-				matches.Subcommand = sub.matches(iter)
+				matches.Subcommand = sub.apply(iter)
 				break
 			}
 		}
@@ -118,20 +133,23 @@ func (c *Command) matches(iter *ArgIterator) *CmdMatches {
 
 type CmdMatches struct {
 	Name       string
-	Flags      map[string]FlagMatch
+	Flags      []FlagMatch
 	Subcommand *CmdMatches
 }
 
 func NewCmdMatches(name string) *CmdMatches {
 	return &CmdMatches{
-		Name:  name,
-		Flags: make(map[string]FlagMatch),
+		Name: name,
 	}
 }
 
 func (c *CmdMatches) HasFlag(name string) bool {
-	_, ok := c.Flags[name]
-	return ok
+	for _, flag := range c.Flags {
+		if flag.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 type ArgIterator struct {

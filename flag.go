@@ -9,6 +9,7 @@ type Flag struct {
 	HasDefault bool
 	Default    string
 	Required   bool
+	Action     func(value string)
 }
 
 func NewFlag(name string) *Flag {
@@ -43,6 +44,11 @@ func (f *Flag) SetRequired(yes bool) *Flag {
 	return f
 }
 
+func (f *Flag) SetAction(action func(value string)) *Flag {
+	f.Action = action
+	return f
+}
+
 func (f *Flag) Matches(iter *ArgIterator) *FlagMatch {
 	if !iter.HasNext() {
 		return nil
@@ -61,11 +67,11 @@ func (f *Flag) Matches(iter *ArgIterator) *FlagMatch {
 		Name: f.Name,
 	}
 	if !f.TakesValue {
-		return &match		
+		return &match
 	}
 	if !iter.HasNext() {
 		if f.HasDefault {
-			
+
 		}
 	}
 	return &match
