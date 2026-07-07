@@ -102,8 +102,8 @@ func (c *Command[T]) apply(iter *ArgIter) {
 	for iter.HasNext() {
 		if iter.NextIsFlag() {
 			c.applyFlag(iter)
-		} else if c.NextIsSubcmd(iter) {
-			
+		} else if subcmd := c.NextSubcmd(iter); subcmd != nil {
+			subcmd.apply(iter)
 		} else {
 			cmdArg = iter.Next()
 			break
@@ -133,6 +133,7 @@ func (c *Command[T]) applyFlag(iter *ArgIter) {
 		panic(fmt.Sprintf("unknown flag: %s", flagToken))
 	}
 
+	// capture value if the flag takes one
 	value := ""
 	if flag.TakesValue && iter.NextIsValue() {
 		value = iter.Next()
@@ -141,17 +142,17 @@ func (c *Command[T]) applyFlag(iter *ArgIter) {
 	flag.action(NewContext(c), value)
 }
 
-func (c *Command[T]) NextIsSubcmd(iter *ArgIter) bool {
+func (c *Command[T]) NextSubcmd(iter *ArgIter) *Command[any] {
 	if !iter.HasNext() {
-		return false
+		return nil
 	}
 	subcmdToken := iter.Peek()
 	for _, sub := range c.Subcommands {
 		if sub.(*Command[any]).Name == subcmdToken {
-			return true
+			return sub.(*Command[any])
 		}
 	}
-	return false
+	return nil
 }
 
 func (c *Command[T]) ToCmd() Cmd {
