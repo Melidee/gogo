@@ -57,4 +57,30 @@ func (f *Flag[T]) Action(action func(ctx Context[T], value string)) *Flag[T] {
 	return f
 }
 
+func (f *Flag[T]) ActionSet(dest func(state T) *string) *Flag[T] {
+	f.action = func(ctx Context[T], value string) {
+		*dest(*ctx.State()) = value
+	}
+	return f
+}
+
+func (f *Flag[T]) ActionSetInt(dest func(state T) *int) *Flag[T] {
+	f.action = func(ctx Context[T], value string) {
+		num, err := strconv.Atoi(value)
+		if err != nil {
+			panic(err.Error())
+		}
+		*dest(*ctx.State()) = num
+	}
+	return f
+}
+
+func (f *Flag[T]) ActionToggleBool(dest func(state T) *bool) *Flag[T] {
+	f.action = func(ctx Context[T], value string) {
+		state := dest(*ctx.State())
+	*state = !*state 
+	}
+	return f
+}
+
 func (f *Flag[T]) CallAction(ctx Context[T], value string)

@@ -1,7 +1,9 @@
 package hopeful
 
+import "fmt"
+
 func test() {
-	
+
 }
 
 type Cmd interface {
@@ -9,7 +11,7 @@ type Cmd interface {
 }
 
 func NewCmd(name string) *Command[struct{}] {
-	return &Command[struct{}] {
+	return &Command[struct{}]{
 		Name: name,
 	}
 }
@@ -30,7 +32,7 @@ func NewCommand[T any](name string, init T) *Command[T] {
 	return &Command[T]{
 		Name:  name,
 		State: init,
-	}	
+	}
 }
 
 func NewCommand_(name string) *Command[struct{}] {
@@ -49,8 +51,19 @@ func (c *Command[T]) SetAuthor(author string) *Command[T] {
 	return c
 }
 
+func (c *Command[T]) versionCommands() (*Command[struct{}], *Flag[T]) {
+	subCmd := NewCommand_("version").SetHelp("Print the version of the program.")
+	flag := NewFlag[T]("version").SetShort('V').SetLong("version").Action(func(ctx Context[T], value string) {
+		fmt.Printf("%s version v%s", ctx.cmd.Name, ctx.cmd.Version)
+	})
+	return subCmd, flag
+}
+
 func (c *Command[T]) SetVersion(version string) *Command[T] {
 	c.Version = version
+	subCmd, flag := c.versionCommands()
+	c.Subcommands = append(c.Subcommands, subCmd)
+	c.Flags = append(c.Flags, flag)
 	return c
 }
 
@@ -77,7 +90,7 @@ func (c *Command[T]) CallAction() *Command[T] {
 }
 
 func (c *Command[T]) Apply([]string) {
-	
+
 }
 
 func (c *Command[T]) ToCmd() Cmd {
