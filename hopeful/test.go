@@ -12,6 +12,10 @@ func NewSearch() Search {
 	}
 }
 
+func (s Search) Search() {
+
+}
+
 type Add struct {
 }
 
@@ -20,7 +24,9 @@ func NewAdd() Add {
 }
 
 type Init struct {
-	isLib bool
+	isLib       bool
+	gitInit     bool
+	packageName string
 }
 
 func NewInit() Init {
@@ -43,7 +49,12 @@ func Test() {
 			AddFlag(NewFlag[Init]("lib").
 				SetLong("lib").
 				SetAbout("initialize the project as a library").
-				ActionToggleBool(func(state Init) *bool { return &state.isLib }))).
+				ActionSetTrue(func(state Init) *bool { return &state.isLib })).
+			AddFlag(NewFlag[Init]("git").
+				SetShort('g').
+				SetLong("git").
+				SetAbout("Initialize a new git repository for the project").
+				ActionSetFalse(func(state Init) *bool { return &state.gitInit }))).
 		AddSubcommand(NewCommand("search", NewSearch()).
 			SetHelp("Search for packages in the go package repository.").
 			AddFlag(NewFlag[Search]("count").
@@ -57,6 +68,7 @@ func Test() {
 				SetLong("filter").
 				SetAbout("Filter results by regular expression").
 				ActionSet(func(state Search) *string { return &state.Filter }))).
-		AddSubcommand(NewCommand("add", NewAdd()))
-		
+		AddSubcommand(NewCommand("add", NewAdd()).
+			SetHelp("Add a new package to the current project"))
+
 }
