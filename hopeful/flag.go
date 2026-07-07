@@ -75,10 +75,16 @@ func (f *Flag[T]) ActionSetInt(dest func(state T) *int) *Flag[T] {
 	return f
 }
 
-func (f *Flag[T]) ActionToggleBool(dest func(state T) *bool) *Flag[T] {
+func (f *Flag[T]) ActionSetTrue(dest func(state T) *bool) *Flag[T] {
 	f.action = func(ctx Context[T], value string) {
-		state := dest(*ctx.State())
-	*state = !*state 
+		*dest(*ctx.State()) = true
+	}
+	return f
+}
+
+func (f *Flag[T]) ActionSetFalse(dest func(state T) *bool) *Flag[T] {
+	f.action = func(ctx Context[T], value string) {
+		*dest(*ctx.State()) = false
 	}
 	return f
 }
