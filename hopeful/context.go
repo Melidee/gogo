@@ -9,6 +9,12 @@ type Context[T any] struct {
 	cmd *Command[T]
 }
 
+func NewContext[T any](cmd *Command[T]) Context[T] {
+	return Context[T]{
+		cmd: cmd,
+	}
+}
+
 func (c Context[T]) State() *T {
 	return &c.cmd.State
 }
