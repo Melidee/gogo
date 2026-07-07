@@ -1,6 +1,8 @@
 package hopeful
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func test() {
 
@@ -25,7 +27,7 @@ type Command[T any] struct {
 	Flags       []*Flag[T]
 	Subcommands []Cmd
 	State       T
-	Action      func(cmd Command[T], flags []*Flag[T], state *T)
+	Action      func(ctx Context[T], value string)
 }
 
 func NewCommand[T any](name string, init T) *Command[T] {
@@ -82,15 +84,74 @@ func (c *Command[T]) AddSubcommand(cmd Cmd) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) CallAction() *Command[T] {
+func (c *Command[T]) CallAction(value string) *Command[T] {
 	if c.Action != nil {
-		c.Action(*c, c.Flags, &c.State)
+		c.Action(NewContext(c), value)
 	}
 	return c
 }
 
-func (c *Command[T]) Apply([]string) {
+func (c *Command[T]) Apply(args []string) {
+	iter := NewArgsIter(args)
+	iter.Next()
+	c.apply(iter)
+}
 
+func (c *Command[T]) apply(iter *ArgIter) {
+	cmdArg := ""
+	for iter.HasNext() {
+		if iter.NextIsFlag() {
+			c.applyFlag(iter)
+		} else if c.NextIsSubcmd(iter) {
+			
+		} else {
+			cmdArg = iter.Next()
+			break
+		}
+	}
+	c.CallAction(cmdArg)
+}
+
+func (c *Command[T]) applyFlag(iter *ArgIter) {
+	// get the token for the flag we're looking at
+	flagToken := iter.Next()
+	if len(flagToken) < 2 {
+		panic("single dash")
+	}
+	
+	// find the matching flag
+	var flag *Flag[T]
+	for _, f := range c.Flags {
+		matchesShort := flagToken[0] == '-' && flagToken[1] == byte(f.Short)
+		matchesLong := flagToken[0:2] == "--" && flagToken[2:] == f.Long
+		if matchesShort || matchesLong {
+			flag = f
+			break
+		}
+	}
+	if flag == nil {
+		panic(fmt.Sprintf("unknown flag: %s", flagToken))
+	}
+
+	value := ""
+	if flag.TakesValue && iter.NextIsValue() {
+		value = iter.Next()
+	}
+
+	flag.action(NewContext(c), value)
+}
+
+func (c *Command[T]) NextIsSubcmd(iter *ArgIter) bool {
+	if !iter.HasNext() {
+		return false
+	}
+	subcmdToken := iter.Peek()
+	for _, sub := range c.Subcommands {
+		if sub.(*Command[any]).Name == subcmdToken {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Command[T]) ToCmd() Cmd {
