@@ -26,7 +26,7 @@ func main() {
 	}
 }
 
-func gogoCmd() *Command {
+func gogoCmd[T any]() *Command[T] {
 	return NewCommand("gogo").
 		SetAuthor("Melidee").
 		SetVersion("0.1.0").
@@ -35,7 +35,7 @@ func gogoCmd() *Command {
 			SetShort('h').
 			SetLong("help").
 			SetAbout("Show help message")).
-		AddSubcommand(NewCommand("search").
+		AddSubcommand(NewCommand[any]("search").
 			AddFlag(NewFlag("limit").
 				SetShort('l').
 				SetLong("count").
@@ -44,32 +44,32 @@ func gogoCmd() *Command {
 			AddFlag(NewFlag("filter").
 				SetShort('f').
 				SetLong("filter").
-				SetAbout("Filter results by regular expression")))
+				SetAbout("Filter results by regular expression")).
+		AddSubcommand(NewStatelessCommand("init").
+			AddFlag(NewFlag("lib").SetLong("lib"))))
 }
 
-type Command struct {
-	Name        string
-	Author      string
-	Version     string
-	About       string
-	Help        string
-	Flags       []*Flag
-	Subcommands []*Command
-	Action      func(flags []Flag, )
-}
 
-func NewCommand(name string) *Command {
-	return &Command{
+
+func NewStatelessCommand(name string) *Command[struct{}] {
+	return &Command[struct{}]{
 		Name: name,
 	}
 }
 
-func (c *Command) SetAuthor(author string) *Command {
+func NewCommand[T any](name string, initialState T) *Command[T] {
+	return &Command[T]{
+		Name: name,
+		State: initialState,
+	}
+}
+
+func (c *Command[T]) SetAuthor(author string) *Command[T] {
 	c.Author = author
 	return c
 }
 
-func (c *Command) SetVersion(version string) *Command {
+func (c *Command[T]) SetVersion(version string) *Command[T] {
 	versionFlag := NewFlag("version").
 		SetShort('v').
 		SetLong("version").
@@ -84,17 +84,17 @@ func (c *Command) SetVersion(version string) *Command {
 	return c
 }
 
-func (c *Command) SetHelp(help string) *Command {
+func (c *Command[T]) SetHelp(help string) *Command[T] {
 	c.Help = help
 	return c
 }
 
-func (c *Command) AddFlag(flag *Flag) *Command {
+func (c *Command[T]) AddFlag(flag *Flag) *Command[T] {
 	c.Flags = append(c.Flags, flag)
 	return c
 }
 
-func (c *Command) AddSubcommand(cmd *Command) *Command {
+func (c *Command[T]) AddSubcommand(cmd *Command[any]) *Command[T] {
 	c.Subcommands = append(c.Subcommands, cmd)
 	return c
 }

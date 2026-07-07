@@ -1,0 +1,36 @@
+package hopeful
+
+import (
+	"context"
+	"time"
+)
+
+type Context[T any] struct {
+	cmd *Command[T]
+}
+
+func (c Context[T]) State() *T {
+	return &c.cmd.State
+}
+
+func (c Context[T]) Flags() []*Flag[T] {
+	return c.cmd.Flags
+}
+
+func (c Context[T]) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
+func (c Context[T]) Done() <-chan struct{} {
+	return nil
+}
+
+func (c Context[T]) Err() error {
+	return nil
+}
+
+func (c Context[T]) Value(key any) any {
+	return nil
+}
+
+type a context.Context
