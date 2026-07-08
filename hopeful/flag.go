@@ -88,5 +88,3 @@ func (f *Flag[T]) ActionSetFalse(dest func(state T) *bool) *Flag[T] {
 	}
 	return f
 }
-
-func (f *Flag[T]) CallAction(ctx Context[T], value string)

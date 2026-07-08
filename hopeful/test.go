@@ -1,8 +1,11 @@
 package hopeful
 
+import "fmt"
+
 type Search struct {
 	Count  int
 	Filter string
+	Query  string
 }
 
 func NewSearch() Search {
@@ -13,7 +16,7 @@ func NewSearch() Search {
 }
 
 func (s Search) Search() {
-
+	fmt.Printf("searching `%s` with filter `%s` for %d results\n", s.Query, s.Filter, s.Count)
 }
 
 type Add struct {
@@ -35,6 +38,29 @@ func NewInit() Init {
 	}
 }
 
+func Example() *Command[struct{}] {
+	return NewCmd("").
+		AddSubcommand(NewCommand("search", NewSearch()).
+			SetHelp("Search for packages in the go package repository.").
+			Action(func(ctx Context[Search], value string) {
+				search := ctx.State()
+				search.Query = value
+				ctx.State().Search()
+			}).
+			AddFlag(NewFlag[Search]("count").
+				SetShort('c').
+				SetLong("count").
+				SetAbout("Limit of search results to return").
+				SetDefault("5").
+				ActionSetInt(func(state Search) *int { return &state.Count })).
+			AddFlag(NewFlag[Search]("filter").
+				SetShort('f').
+				SetLong("filter").
+				SetAbout("Filter results by regular expression").
+				ActionSet(func(state Search) *string { return &state.Filter })))
+}
+
+/*
 func Test() {
 	NewCmd("gogo").
 		SetAuthor("Melidee").
@@ -72,3 +98,4 @@ func Test() {
 			SetHelp("Add a new package to the current project"))
 
 }
+*/

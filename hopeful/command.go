@@ -9,7 +9,15 @@ func test() {
 }
 
 type Cmd interface {
+	GetName() string
+	GetAuthor() string
+	GetVersion() string
+	GetAbout() string
+	GetHelp() string
 	Apply(args []string)
+	apply(iter *ArgIter)
+	applyFlag(iter *ArgIter)
+	NextSubcmd(iter *ArgIter) Cmd
 }
 
 func NewCmd(name string) *Command[struct{}] {
@@ -27,7 +35,7 @@ type Command[T any] struct {
 	Flags       []*Flag[T]
 	Subcommands []Cmd
 	State       T
-	Action      func(ctx Context[T], value string)
+	action      func(ctx Context[T], value string)
 }
 
 func NewCommand[T any](name string, init T) *Command[T] {
@@ -41,6 +49,26 @@ func NewCommand_(name string) *Command[struct{}] {
 	return &Command[struct{}]{
 		Name: name,
 	}
+}
+
+func (c *Command[T]) GetName() string {
+	return c.Name
+}
+
+func (c *Command[T]) GetAuthor() string {
+	return c.Author
+}
+
+func (c *Command[T]) GetVersion() string {
+	return c.Version
+}
+
+func (c *Command[T]) GetAbout() string {
+	return c.About
+}
+
+func (c *Command[T]) GetHelp() string {
+	return c.Help
 }
 
 func (c *Command[T]) SetName(name string) *Command[T] {
@@ -84,20 +112,17 @@ func (c *Command[T]) AddSubcommand(cmd Cmd) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) CallAction(value string) *Command[T] {
-	if c.Action != nil {
-		c.Action(NewContext(c), value)
-	}
+func (c *Command[T]) Action(action func(ctx Context[T], value string)) *Command[T] {
+	c.action = action
 	return c
 }
 
 func (c *Command[T]) Apply(args []string) {
-	iter := NewArgsIter(args)
-	iter.Next()
-	c.apply(iter)
+	c.apply(NewArgsIter(args))
 }
 
 func (c *Command[T]) apply(iter *ArgIter) {
+	iter.Next() // consume the command name
 	cmdArg := ""
 	for iter.HasNext() {
 		if iter.NextIsFlag() {
@@ -109,7 +134,7 @@ func (c *Command[T]) apply(iter *ArgIter) {
 			break
 		}
 	}
-	c.CallAction(cmdArg)
+	c.action(NewContext(c), cmdArg)
 }
 
 func (c *Command[T]) applyFlag(iter *ArgIter) {
@@ -118,7 +143,7 @@ func (c *Command[T]) applyFlag(iter *ArgIter) {
 	if len(flagToken) < 2 {
 		panic("single dash")
 	}
-	
+
 	// find the matching flag
 	var flag *Flag[T]
 	for _, f := range c.Flags {
@@ -142,14 +167,14 @@ func (c *Command[T]) applyFlag(iter *ArgIter) {
 	flag.action(NewContext(c), value)
 }
 
-func (c *Command[T]) NextSubcmd(iter *ArgIter) *Command[any] {
+func (c *Command[T]) NextSubcmd(iter *ArgIter) Cmd {
 	if !iter.HasNext() {
 		return nil
 	}
 	subcmdToken := iter.Peek()
 	for _, sub := range c.Subcommands {
-		if sub.(*Command[any]).Name == subcmdToken {
-			return sub.(*Command[any])
+		if sub.GetName() == subcmdToken {
+			return sub
 		}
 	}
 	return nil
