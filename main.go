@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	Command().Apply(os.Args)
+	err := Command().Apply(os.Args)
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func Command() *cli.Command[cli.Empty] {
@@ -19,7 +22,7 @@ func Command() *cli.Command[cli.Empty] {
 		Author("Melidee <github.com/Melidee>").
 		Help("").
 		Usage("gogo [COMMAND] [OPTIONS]...").
-		Action(func(ctx cli.Context[cli.Empty], value string) {}).
+		Action(func(ctx cli.Context[cli.Empty], value string) error { return nil}).
 		Subcommand(SearchCommand()).
 		Subcommand(InitCommand())
 }
@@ -28,10 +31,11 @@ func SearchCommand() *cli.Command[Search] {
 	return cli.NewCommand("search", NewSearch()).
 		About("Search for packages in the go package repository.").
 		Help("").
-		Action(func(ctx cli.Context[Search], query string) {
+		Action(func(ctx cli.Context[Search], query string) error {
 			search := ctx.State()
 			search.Query = query
 			ctx.State().Search()
+			return nil
 		}).
 		Flag(cli.NewFlag[Search]("count").
 			Short('c').
@@ -91,7 +95,7 @@ func InitCommand() *cli.Command[Init] {
 	return cli.NewCommand("init", NewInit()).
 		About("Initialize a new go project").
 		Help("").
-		Action(func(ctx cli.Context[Init], pkgName string) {
+		Action(func(ctx cli.Context[Init], pkgName string) error {
 			if pkgName == "" {
 				panic("no package name")
 			}
@@ -100,6 +104,7 @@ func InitCommand() *cli.Command[Init] {
 			if ctx.State().gitInit {
 				exec.Command("git", "init", "-b", "main")
 			}
+			return nil
 		}).
 		Flag(cli.NewFlag[Init]("lib").
 			Long("lib").

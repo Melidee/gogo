@@ -12,7 +12,7 @@ type Flag[T any] struct {
 	default_   string
 	required   bool
 	argName    string
-	action     func(ctx Context[T], value string)
+	action     func(ctx Context[T], value string) error
 }
 
 func NewFlag[T any](name string) *Flag[T] {
@@ -52,39 +52,43 @@ func (f *Flag[T]) ArgName(argName string) *Flag[T] {
 	return f
 }
 
-func (f *Flag[T]) Action(action func(ctx Context[T], value string)) *Flag[T] {
+func (f *Flag[T]) Action(action func(ctx Context[T], value string) error) *Flag[T] {
 	f.action = action
 	return f
 }
 
 func (f *Flag[T]) ActionSet(dest func(state T) *string) *Flag[T] {
-	f.action = func(ctx Context[T], value string) {
+	f.action = func(ctx Context[T], value string) error {
 		*dest(*ctx.State()) = value
+		return nil
 	}
 	return f
 }
 
 func (f *Flag[T]) ActionSetInt(dest func(state T) *int) *Flag[T] {
-	f.action = func(ctx Context[T], value string) {
+	f.action = func(ctx Context[T], value string) error {
 		num, err := strconv.Atoi(value)
 		if err != nil {
-			panic(err.Error())
+			return err
 		}
 		*dest(*ctx.State()) = num
+		return nil
 	}
 	return f
 }
 
 func (f *Flag[T]) ActionSetTrue(dest func(state T) *bool) *Flag[T] {
-	f.action = func(ctx Context[T], value string) {
+	f.action = func(ctx Context[T], value string) error {
 		*dest(*ctx.State()) = true
+		return nil
 	}
 	return f
 }
 
 func (f *Flag[T]) ActionSetFalse(dest func(state T) *bool) *Flag[T] {
-	f.action = func(ctx Context[T], value string) {
+	f.action = func(ctx Context[T], value string) error {
 		*dest(*ctx.State()) = false
+		return nil
 	}
 	return f
 }
