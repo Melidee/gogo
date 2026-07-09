@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 )
 
 type Cmd interface {
@@ -19,11 +20,13 @@ type Cmd interface {
 type Empty struct{}
 
 type Command[T any] struct {
-	name        string
-	author      string
-	version     string
-	about       string
-	help        string
+	name    string
+	author  string
+	version string
+	about   string
+	usage   string
+	help    string
+
 	flags       []*Flag[T]
 	subcommands []Cmd
 	state       T
@@ -32,8 +35,9 @@ type Command[T any] struct {
 
 func NewCommand[T any](name string, init T) *Command[T] {
 	return &Command[T]{
-		name:  name,
-		state: init,
+		name:   name,
+		state:  init,
+		action: func(ctx Context[T], value string) {},
 	}
 }
 
@@ -57,6 +61,27 @@ func (c *Command[T]) GetHelp() string {
 	return c.help
 }
 
+func (c *Command[T]) GetHelpString() string {
+	var version string
+	if c.GetAuthor() != "" {
+		version = fmt.Sprintf(" v%s\n", c.GetVersion())
+	}
+	var author string
+	if c.GetAuthor() != "" {
+		author = fmt.Sprintf("%s\n", c.GetAuthor())
+	}
+	var about string
+	if c.GetAbout() != "" {
+		about = fmt.Sprintf("%s\n", c.GetAbout())
+	}
+	return fmt.Sprintf("%s%s\n%s%s", c.GetName(), version, author, about)
+}
+
+func (c *Command[T]) PrintHelp() {
+	fmt.Println("HIII")
+	fmt.Println(c.GetHelpString())
+}
+
 func (c *Command[T]) Name(name string) *Command[T] {
 	c.name = name
 	return c
@@ -69,19 +94,35 @@ func (c *Command[T]) Author(author string) *Command[T] {
 
 func (c *Command[T]) Version(version string) *Command[T] {
 	c.version = version
-	
-	subCmd := NewCommand[Empty]("version", Empty{}).Help("Print the version of the program.")
+
+	subCmd := NewCommand("version", Empty{}).
+		Help("Print the version of the program.").Action(func(ctx Context[Empty], value string) {
+		fmt.Printf("%s version v%s\n", c.name, c.version)
+		os.Exit(0)
+	})
 	c.subcommands = append(c.subcommands, subCmd)
 
 	flag := NewFlag[T]("version").Short('V').Long("version").Action(func(ctx Context[T], value string) {
-		fmt.Printf("%s version v%s", ctx.cmd.name, ctx.cmd.version)
+		fmt.Printf("%s version v%s\n", ctx.cmd.name, ctx.cmd.version)
+		os.Exit(0)
 	})
 	c.flags = append(c.flags, flag)
 	return c
 }
 
 func (c *Command[T]) Help(help string) *Command[T] {
+	helpCmd := NewCommand("help", Empty{}).
+		About("Print help information for the program.").
+		Action(func(ctx Context[Empty], value string) {
+			c.PrintHelp()
+		})
+	c.subcommands = append(c.subcommands, helpCmd)
 	c.help = help
+	return c
+}
+
+func (c *Command[T]) About(about string) *Command[T] {
+	c.about = about
 	return c
 }
 
@@ -161,8 +202,4 @@ func (c *Command[T]) nextSubcmd(iter *argIter) Cmd {
 		}
 	}
 	return nil
-}
-
-func (c *Command[T]) ToCmd() Cmd {
-	return c
 }

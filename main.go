@@ -2,15 +2,21 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Melidee/gogo/cli"
 )
 
+func main() {
+	Command().Apply(os.Args)
+}
+
 func Command() *cli.Command[cli.Empty] {
 	return cli.NewCommand("gogo", cli.Empty{}).
-		Help("A simple CLI tool for Go.").
+		About("A simple CLI tool for Go.").
 		Version("0.1.0").
 		Author("Melidee").
+		Action(func(ctx cli.Context[cli.Empty], value string) {}).
 		Subcommand(SearchCommand())
 }
 
