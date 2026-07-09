@@ -25,6 +25,7 @@ func Command() *cli.Command[cli.Empty] {
 func SearchCommand() *cli.Command[Search] {
 	return cli.NewCommand("search", NewSearch()).
 		About("Search for packages in the go package repository.").
+		Help("").
 		Action(func(ctx cli.Context[Search], value string) {
 			search := ctx.State()
 			search.Query = value
@@ -35,11 +36,13 @@ func SearchCommand() *cli.Command[Search] {
 			Long("count").
 			About("Limit of search results to return").
 			Default("5").
+			ArgName("COUNT").
 			ActionSetInt(func(state Search) *int { return &state.Count })).
 		Flag(cli.NewFlag[Search]("filter").
 			Short('f').
 			Long("filter").
 			About("Filter results by regular expression").
+			ArgName("REGEX").
 			ActionSet(func(state Search) *string { return &state.Filter }))
 }
 

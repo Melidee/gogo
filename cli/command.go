@@ -99,12 +99,12 @@ func (c *Command[T]) formatCommandsHelp() string {
 		}
 	}
 	longPadSize += 2
-	
+
 	help := "\n\n" + Style("Commands", Green) + ":"
 	for _, cmd := range c.subcommands {
 		help += fmt.Sprintf("\n    %s", Style(cmd.GetName(), Blue))
-		pad := strings.Repeat(" ", longPadSize - len(cmd.GetName()))
-		help += pad + cmd.GetAbout() 
+		pad := strings.Repeat(" ", longPadSize-len(cmd.GetName()))
+		help += pad + cmd.GetAbout()
 	}
 	return help
 }
@@ -114,23 +114,31 @@ func (c *Command[T]) formatOptionsHelp() string {
 		return ""
 	}
 
-	longPadSize := 0
+	argName := func(s string) string {
+		if s == "" {
+			return ""
+		}
+		return " <" + s + "> "
+	}
+
+	longestPadSize := 0
 	for _, flag := range c.flags {
-		if len(flag.long) > longPadSize {
-			longPadSize = len(flag.long)
+		if len(flag.long)+len(argName(flag.argName)) > longestPadSize {
+			longestPadSize = 2 + len(flag.long) + len(argName(flag.argName))
 		}
 	}
-	longPadSize += 2
-	
-	
+
 	help := "\n\n" + Style("Options", Green) + ":"
 	for _, flag := range c.flags {
 		short := "    "
 		if flag.short != 0 {
-			short = fmt.Sprintf("-%c, ", flag.short)
+			short = Style("-"+string(flag.short), Blue)
 		}
-		help += fmt.Sprintf("\n    %s--%s", Style(short, Blue), Style(flag.long, Blue))
-		pad := strings.Repeat(" ", longPadSize - len(flag.long))
+		help += "\n    " + short + ", " + Style("--"+flag.long, Blue)
+		if flag.argName != "" {
+			help += argName(flag.argName)
+		}
+		pad := strings.Repeat(" ", longestPadSize-len(flag.long)-len(argName(flag.argName)))
 		help += pad + flag.about
 	}
 	return help

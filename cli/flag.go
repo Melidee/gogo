@@ -9,8 +9,9 @@ type Flag[T any] struct {
 	about      string
 	takesValue bool
 	hasDefault bool
-	default_    string
+	default_   string
 	required   bool
+	argName    string
 	action     func(ctx Context[T], value string)
 }
 
@@ -43,6 +44,11 @@ func (f *Flag[T]) Default(defaultValue string) *Flag[T] {
 
 func (f *Flag[T]) Required(yes bool) *Flag[T] {
 	f.required = yes
+	return f
+}
+
+func (f *Flag[T]) ArgName(argName string) *Flag[T] {
+	f.argName = argName
 	return f
 }
 
