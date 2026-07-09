@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Cmd interface {
@@ -66,7 +67,7 @@ func (c *Command[T]) GetHelp() string {
 }
 
 func (c *Command[T]) GetHelpString() string {
-	help := c.name
+	help := Style(c.name, Blue, Bold)
 	if c.GetVersion() != "" {
 		help += fmt.Sprintf(" v%s", c.GetVersion())
 	}
@@ -78,7 +79,8 @@ func (c *Command[T]) GetHelpString() string {
 		help += fmt.Sprintf("%s\n", c.GetAbout())
 	}
 	if c.GetUsage() != "" {
-		help += fmt.Sprintf("\nUsage:\n    %s\n", c.GetUsage())
+		help += "\n" + Style("Usage", Green) + ":\n"
+		help += "    " + c.GetUsage()
 	}
 	help += c.formatCommandsHelp()
 	help += c.formatOptionsHelp()
@@ -89,9 +91,20 @@ func (c *Command[T]) formatCommandsHelp() string {
 	if len(c.subcommands) == 0 {
 		return ""
 	}
-	help := "\nCommands:\n"
+
+	longPadSize := 0
 	for _, cmd := range c.subcommands {
-		help += fmt.Sprintf("    %s\n", cmd.GetName())
+		if len(cmd.GetName()) > longPadSize {
+			longPadSize = len(cmd.GetName())
+		}
+	}
+	longPadSize += 2
+	
+	help := "\n\n" + Style("Commands", Green) + ":"
+	for _, cmd := range c.subcommands {
+		help += fmt.Sprintf("\n    %s", Style(cmd.GetName(), Blue))
+		pad := strings.Repeat(" ", longPadSize - len(cmd.GetName()))
+		help += pad + cmd.GetAbout() 
 	}
 	return help
 }
@@ -100,13 +113,25 @@ func (c *Command[T]) formatOptionsHelp() string {
 	if len(c.flags) == 0 {
 		return ""
 	}
-	help := "\nOptions:"
+
+	longPadSize := 0
+	for _, flag := range c.flags {
+		if len(flag.long) > longPadSize {
+			longPadSize = len(flag.long)
+		}
+	}
+	longPadSize += 2
+	
+	
+	help := "\n\n" + Style("Options", Green) + ":"
 	for _, flag := range c.flags {
 		short := "    "
 		if flag.short != 0 {
 			short = fmt.Sprintf("-%c, ", flag.short)
 		}
-		help += fmt.Sprintf("\n    %s--%s\t%s", short, flag.long, flag.about)
+		help += fmt.Sprintf("\n    %s--%s", Style(short, Blue), Style(flag.long, Blue))
+		pad := strings.Repeat(" ", longPadSize - len(flag.long))
+		help += pad + flag.about
 	}
 	return help
 }

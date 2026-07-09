@@ -24,7 +24,7 @@ func Command() *cli.Command[cli.Empty] {
 
 func SearchCommand() *cli.Command[Search] {
 	return cli.NewCommand("search", NewSearch()).
-		Help("Search for packages in the go package repository.").
+		About("Search for packages in the go package repository.").
 		Action(func(ctx cli.Context[Search], value string) {
 			search := ctx.State()
 			search.Query = value
