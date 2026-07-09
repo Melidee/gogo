@@ -67,7 +67,7 @@ func (c *Command[T]) Author(author string) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) SetVersion(version string) *Command[T] {
+func (c *Command[T]) Version(version string) *Command[T] {
 	c.version = version
 	
 	subCmd := NewCommand[Empty]("version", Empty{}).Help("Print the version of the program.")
