@@ -57,28 +57,61 @@ func (c *Command[T]) GetAbout() string {
 	return c.about
 }
 
+func (c *Command[T]) GetUsage() string {
+	return c.usage
+}
+
 func (c *Command[T]) GetHelp() string {
 	return c.help
 }
 
 func (c *Command[T]) GetHelpString() string {
-	var version string
-	if c.GetAuthor() != "" {
-		version = fmt.Sprintf(" v%s\n", c.GetVersion())
+	help := c.name
+	if c.GetVersion() != "" {
+		help += fmt.Sprintf(" v%s", c.GetVersion())
 	}
-	var author string
+	help += "\n"
 	if c.GetAuthor() != "" {
-		author = fmt.Sprintf("%s\n", c.GetAuthor())
+		help += fmt.Sprintf("%s\n", c.GetAuthor())
 	}
-	var about string
 	if c.GetAbout() != "" {
-		about = fmt.Sprintf("%s\n", c.GetAbout())
+		help += fmt.Sprintf("%s\n", c.GetAbout())
 	}
-	return fmt.Sprintf("%s%s\n%s%s", c.GetName(), version, author, about)
+	if c.GetUsage() != "" {
+		help += fmt.Sprintf("\nUsage:\n    %s\n", c.GetUsage())
+	}
+	help += c.formatCommandsHelp()
+	help += c.formatOptionsHelp()
+	return help
+}
+
+func (c *Command[T]) formatCommandsHelp() string {
+	if len(c.subcommands) == 0 {
+		return ""
+	}
+	help := "\nCommands:\n"
+	for _, cmd := range c.subcommands {
+		help += fmt.Sprintf("    %s\n", cmd.GetName())
+	}
+	return help
+}
+
+func (c *Command[T]) formatOptionsHelp() string {
+	if len(c.flags) == 0 {
+		return ""
+	}
+	help := "\nOptions:"
+	for _, flag := range c.flags {
+		short := "    "
+		if flag.short != 0 {
+			short = fmt.Sprintf("-%c, ", flag.short)
+		}
+		help += fmt.Sprintf("\n    %s--%s\t%s", short, flag.long, flag.about)
+	}
+	return help
 }
 
 func (c *Command[T]) PrintHelp() {
-	fmt.Println("HIII")
 	fmt.Println(c.GetHelpString())
 }
 
@@ -96,33 +129,52 @@ func (c *Command[T]) Version(version string) *Command[T] {
 	c.version = version
 
 	subCmd := NewCommand("version", Empty{}).
-		Help("Print the version of the program.").Action(func(ctx Context[Empty], value string) {
+		About("Print version info and exit").Action(func(ctx Context[Empty], value string) {
 		fmt.Printf("%s version v%s\n", c.name, c.version)
 		os.Exit(0)
 	})
 	c.subcommands = append(c.subcommands, subCmd)
 
-	flag := NewFlag[T]("version").Short('V').Long("version").Action(func(ctx Context[T], value string) {
-		fmt.Printf("%s version v%s\n", ctx.cmd.name, ctx.cmd.version)
-		os.Exit(0)
-	})
+	flag := NewFlag[T]("version").
+		Short('V').
+		Long("version").
+		About("Print version info and exit").
+		Action(func(ctx Context[T], value string) {
+			fmt.Printf("%s version v%s\n", ctx.cmd.name, ctx.cmd.version)
+			os.Exit(0)
+		})
 	c.flags = append(c.flags, flag)
 	return c
 }
 
 func (c *Command[T]) Help(help string) *Command[T] {
 	helpCmd := NewCommand("help", Empty{}).
-		About("Print help information for the program.").
+		About("Print help message and exit").
 		Action(func(ctx Context[Empty], value string) {
 			c.PrintHelp()
+			os.Exit(0)
 		})
 	c.subcommands = append(c.subcommands, helpCmd)
+	flag := NewFlag[T]("help").
+		Short('h').
+		Long("help").
+		About("Print help message and exit").
+		Action(func(ctx Context[T], value string) {
+			c.PrintHelp()
+			os.Exit(0)
+		})
+	c.flags = append(c.flags, flag)
 	c.help = help
 	return c
 }
 
 func (c *Command[T]) About(about string) *Command[T] {
 	c.about = about
+	return c
+}
+
+func (c *Command[T]) Usage(usage string) *Command[T] {
+	c.usage = usage
 	return c
 }
 

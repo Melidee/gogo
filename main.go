@@ -15,7 +15,9 @@ func Command() *cli.Command[cli.Empty] {
 	return cli.NewCommand("gogo", cli.Empty{}).
 		About("A simple CLI tool for Go.").
 		Version("0.1.0").
-		Author("Melidee").
+		Author("Melidee <github.com/Melidee>").
+		Help("").
+		Usage("gogo [COMMAND] [OPTIONS]...").
 		Action(func(ctx cli.Context[cli.Empty], value string) {}).
 		Subcommand(SearchCommand())
 }
