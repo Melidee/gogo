@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/Melidee/gogo/cli"
 )
@@ -19,16 +20,17 @@ func Command() *cli.Command[cli.Empty] {
 		Help("").
 		Usage("gogo [COMMAND] [OPTIONS]...").
 		Action(func(ctx cli.Context[cli.Empty], value string) {}).
-		Subcommand(SearchCommand())
+		Subcommand(SearchCommand()).
+		Subcommand(InitCommand())
 }
 
 func SearchCommand() *cli.Command[Search] {
 	return cli.NewCommand("search", NewSearch()).
 		About("Search for packages in the go package repository.").
 		Help("").
-		Action(func(ctx cli.Context[Search], value string) {
+		Action(func(ctx cli.Context[Search], query string) {
 			search := ctx.State()
-			search.Query = value
+			search.Query = query
 			ctx.State().Search()
 		}).
 		Flag(cli.NewFlag[Search]("count").
@@ -80,7 +82,32 @@ type Init struct {
 func NewInit() Init {
 	return Init{
 		isLib:       false,
-		gitInit:     false,
+		gitInit:     true,
 		packageName: "",
 	}
+}
+
+func InitCommand() *cli.Command[Init] {
+	return cli.NewCommand("init", NewInit()).
+		About("Initialize a new go project").
+		Help("").
+		Action(func(ctx cli.Context[Init], pkgName string) {
+			if pkgName == "" {
+				panic("no package name")
+			}
+			os.Mkdir(pkgName, 0755)
+			os.Chdir("pkgName")
+			if ctx.State().gitInit {
+				exec.Command("git", "init", "-b", "main")
+			}
+		}).
+		Flag(cli.NewFlag[Init]("lib").
+			Long("lib").
+			About("Scaffold this project as a library, without an executable").
+			ActionSetTrue(func(state Init) *bool { return &state.isLib })).
+		Flag(cli.NewFlag[Init]("no-git").
+			Long("no-git").
+			About("Do not initialize a git repository").
+			ActionSetFalse(func(state Init) *bool { return &state.gitInit }))
+
 }
