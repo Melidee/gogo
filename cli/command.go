@@ -1,12 +1,8 @@
-package hopeful
+package cli
 
 import (
 	"fmt"
 )
-
-func test() {
-
-}
 
 type Cmd interface {
 	GetName() string
@@ -15,16 +11,12 @@ type Cmd interface {
 	GetAbout() string
 	GetHelp() string
 	Apply(args []string)
-	apply(iter *ArgIter)
-	applyFlag(iter *ArgIter)
-	NextSubcmd(iter *ArgIter) Cmd
+	apply(iter *argIter)
+	applyFlag(iter *argIter)
+	nextSubcmd(iter *argIter) Cmd
 }
 
-func NewCmd(name string) *Command[struct{}] {
-	return &Command[struct{}]{
-		Name: name,
-	}
-}
+type Empty struct{}
 
 type Command[T any] struct {
 	Name        string
@@ -42,12 +34,6 @@ func NewCommand[T any](name string, init T) *Command[T] {
 	return &Command[T]{
 		Name:  name,
 		State: init,
-	}
-}
-
-func NewCommand_(name string) *Command[struct{}] {
-	return &Command[struct{}]{
-		Name: name,
 	}
 }
 
@@ -81,8 +67,8 @@ func (c *Command[T]) SetAuthor(author string) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) versionCommands() (*Command[struct{}], *Flag[T]) {
-	subCmd := NewCommand_("version").SetHelp("Print the version of the program.")
+func (c *Command[T]) versionCommands() (*Command[Empty], *Flag[T]) {
+	subCmd := NewCommand[Empty]("version", Empty{}).SetHelp("Print the version of the program.")
 	flag := NewFlag[T]("version").SetShort('V').SetLong("version").Action(func(ctx Context[T], value string) {
 		fmt.Printf("%s version v%s", ctx.cmd.Name, ctx.cmd.Version)
 	})
@@ -118,28 +104,28 @@ func (c *Command[T]) Action(action func(ctx Context[T], value string)) *Command[
 }
 
 func (c *Command[T]) Apply(args []string) {
-	c.apply(NewArgsIter(args))
+	c.apply(newArgsIter(args))
 }
 
-func (c *Command[T]) apply(iter *ArgIter) {
-	iter.Next() // consume the command name
+func (c *Command[T]) apply(iter *argIter) {
+	iter.next() // consume the command name
 	cmdArg := ""
-	for iter.HasNext() {
-		if iter.NextIsFlag() {
+	for iter.hasNext() {
+		if iter.nextIsFlag() {
 			c.applyFlag(iter)
-		} else if subcmd := c.NextSubcmd(iter); subcmd != nil {
+		} else if subcmd := c.nextSubcmd(iter); subcmd != nil {
 			subcmd.apply(iter)
 		} else {
-			cmdArg = iter.Next()
+			cmdArg = iter.next()
 			break
 		}
 	}
 	c.action(NewContext(c), cmdArg)
 }
 
-func (c *Command[T]) applyFlag(iter *ArgIter) {
+func (c *Command[T]) applyFlag(iter *argIter) {
 	// get the token for the flag we're looking at
-	flagToken := iter.Next()
+	flagToken := iter.next()
 	if len(flagToken) < 2 {
 		panic("single dash")
 	}
@@ -160,18 +146,18 @@ func (c *Command[T]) applyFlag(iter *ArgIter) {
 
 	// capture value if the flag takes one
 	value := ""
-	if flag.TakesValue && iter.NextIsValue() {
-		value = iter.Next()
+	if flag.TakesValue && iter.nextIsValue() {
+		value = iter.next()
 	}
 
 	flag.action(NewContext(c), value)
 }
 
-func (c *Command[T]) NextSubcmd(iter *ArgIter) Cmd {
-	if !iter.HasNext() {
+func (c *Command[T]) nextSubcmd(iter *argIter) Cmd {
+	if !iter.hasNext() {
 		return nil
 	}
-	subcmdToken := iter.Peek()
+	subcmdToken := iter.peek()
 	for _, sub := range c.Subcommands {
 		if sub.GetName() == subcmdToken {
 			return sub

@@ -1,4 +1,4 @@
-package hopeful
+package cli
 
 import (
 	"context"

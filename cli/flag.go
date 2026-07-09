@@ -1,4 +1,4 @@
-package hopeful
+package cli
 
 import "strconv"
 
@@ -16,12 +16,6 @@ type Flag[T any] struct {
 
 func NewFlag[T any](name string) *Flag[T] {
 	return &Flag[T]{
-		Name: name,
-	}
-}
-
-func NewFlag_(name string) *Flag[struct{}] {
-	return &Flag[struct{}]{
 		Name: name,
 	}
 }

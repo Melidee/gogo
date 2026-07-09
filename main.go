@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	"github.com/Melidee/gogo/hopeful"
+	"github.com/Melidee/gogo/cli"
 )
 
 func main() {
-	example := hopeful.Example()
+	example := cli.Example()
 	example.Apply(os.Args)
 }
