@@ -28,7 +28,7 @@ func (a *argIter) next() string {
 }
 
 func (a *argIter) hasNext() bool {
-	return a.cursor <= len(a.args)
+	return a.cursor < len(a.args)
 }
 
 func (a *argIter) nextIsFlag() bool {
