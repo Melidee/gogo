@@ -3,46 +3,46 @@ package cli
 import "strconv"
 
 type Flag[T any] struct {
-	Name       string
-	Short      rune
-	Long       string
-	About      string
-	TakesValue bool
-	HasDefault bool
-	Default    string
-	Required   bool
+	name       string
+	short      rune
+	long       string
+	about      string
+	takesValue bool
+	hasDefault bool
+	default_    string
+	required   bool
 	action     func(ctx Context[T], value string)
 }
 
 func NewFlag[T any](name string) *Flag[T] {
 	return &Flag[T]{
-		Name: name,
+		name: name,
 	}
 }
 
-func (f *Flag[T]) SetShort(short rune) *Flag[T] {
-	f.Short = short
+func (f *Flag[T]) Short(short rune) *Flag[T] {
+	f.short = short
 	return f
 }
 
-func (f *Flag[T]) SetLong(long string) *Flag[T] {
-	f.Long = long
+func (f *Flag[T]) Long(long string) *Flag[T] {
+	f.long = long
 	return f
 }
 
-func (f *Flag[T]) SetAbout(about string) *Flag[T] {
-	f.About = about
+func (f *Flag[T]) About(about string) *Flag[T] {
+	f.about = about
 	return f
 }
 
-func (f *Flag[T]) SetDefault(defaultValue string) *Flag[T] {
-	f.HasDefault = true
-	f.Default = defaultValue
+func (f *Flag[T]) Default(defaultValue string) *Flag[T] {
+	f.hasDefault = true
+	f.default_ = defaultValue
 	return f
 }
 
-func (f *Flag[T]) SetRequired(yes bool) *Flag[T] {
-	f.Required = yes
+func (f *Flag[T]) Required(yes bool) *Flag[T] {
+	f.required = yes
 	return f
 }
 

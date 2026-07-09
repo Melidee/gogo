@@ -4,22 +4,22 @@ import "fmt"
 
 func SearchCommand() *Command[Search] {
 	return NewCommand("search", NewSearch()).
-		SetHelp("Search for packages in the go package repository.").
+		Help("Search for packages in the go package repository.").
 		Action(func(ctx Context[Search], value string) {
 			search := ctx.State()
 			search.Query = value
 			ctx.State().Search()
 		}).
-		AddFlag(NewFlag[Search]("count").
-			SetShort('c').
-			SetLong("count").
-			SetAbout("Limit of search results to return").
-			SetDefault("5").
+		Flag(NewFlag[Search]("count").
+			Short('c').
+			Long("count").
+			About("Limit of search results to return").
+			Default("5").
 			ActionSetInt(func(state Search) *int { return &state.Count })).
-		AddFlag(NewFlag[Search]("filter").
-			SetShort('f').
-			SetLong("filter").
-			SetAbout("Filter results by regular expression").
+		Flag(NewFlag[Search]("filter").
+			Short('f').
+			Long("filter").
+			About("Filter results by regular expression").
 			ActionSet(func(state Search) *string { return &state.Filter }))
 }
 
@@ -64,9 +64,9 @@ func NewInit() Init {
 
 func Example() *Command[Empty] {
 	return NewCommand("gogo", Empty{}).
-		SetAuthor("Melidee").
+		Author("Melidee").
 		SetVersion("0.1.0").
-		SetHelp("A simple CLI tool").
-		AddFlag(NewFlag[Empty]("").Action(func(ctx Context[Empty], value string) {})).
-		AddSubcommand(SearchCommand())
+		Help("A simple CLI tool").
+		Flag(NewFlag[Empty]("").Action(func(ctx Context[Empty], value string) {})).
+		Subcommand(SearchCommand())
 }

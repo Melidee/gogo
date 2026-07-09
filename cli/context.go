@@ -16,11 +16,11 @@ func NewContext[T any](cmd *Command[T]) Context[T] {
 }
 
 func (c Context[T]) State() *T {
-	return &c.cmd.State
+	return &c.cmd.state
 }
 
 func (c Context[T]) Flags() []*Flag[T] {
-	return c.cmd.Flags
+	return c.cmd.flags
 }
 
 func (c Context[T]) Deadline() (time.Time, bool) {
