@@ -35,10 +35,6 @@ const (
 	Strikethrough
 )
 
-func fg(c TextStyle) int {
-	return int(c) + 30
-}
-
 func Style(s string, styles ...TextStyle) string {
 	if len(styles) == 0 {
 		return s
@@ -48,5 +44,5 @@ func Style(s string, styles ...TextStyle) string {
 		styleStrs = append(styleStrs, fmt.Sprintf("%d", style))
 	}
 	ansiCode := strings.Join(styleStrs, ";")
-	return fmt.Sprintf("%s[%sm%s%s[39m", ansiEsc, ansiCode, s, ansiEsc)
+	return fmt.Sprintf("%s[%sm%s%s[0m", ansiEsc, ansiCode, s, ansiEsc)
 }
