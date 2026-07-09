@@ -42,6 +42,12 @@ func NewCommand[T any](name string, init T) *Command[T] {
 	}
 }
 
+func SimpleCommand(name string) *Command[Empty] {
+	return NewCommand(name, Empty{})
+}
+
+/* --- Getters --- */
+
 func (c *Command[T]) GetName() string {
 	return c.name
 }
@@ -65,6 +71,8 @@ func (c *Command[T]) GetUsage() string {
 func (c *Command[T]) GetHelp() string {
 	return c.help
 }
+
+/* Help formatting */
 
 func (c *Command[T]) GetHelpString() string {
 	help := Style(c.name, Blue, Bold)
@@ -110,6 +118,7 @@ func (c *Command[T]) formatCommandsHelp() string {
 }
 
 func (c *Command[T]) formatOptionsHelp() string {
+	// TODO: refactor this
 	if len(c.flags) == 0 {
 		return ""
 	}
@@ -147,6 +156,8 @@ func (c *Command[T]) formatOptionsHelp() string {
 func (c *Command[T]) PrintHelp() {
 	fmt.Println(c.GetHelpString())
 }
+
+/* Builder methods */
 
 func (c *Command[T]) Name(name string) *Command[T] {
 	c.name = name
@@ -225,6 +236,8 @@ func (c *Command[T]) Action(action func(ctx Context[T], value string)) *Command[
 	c.action = action
 	return c
 }
+
+/* Action running */
 
 func (c *Command[T]) Apply(args []string) {
 	c.apply(newArgsIter(args))
