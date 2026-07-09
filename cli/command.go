@@ -12,9 +12,9 @@ type Cmd interface {
 	GetVersion() string
 	GetAbout() string
 	GetHelp() string
-	Apply(args []string)
-	apply(iter *argIter)
-	applyFlag(iter *argIter)
+	Apply(args []string) error
+	apply(iter *argIter) error
+	applyFlag(iter *argIter) error
 	nextSubcmd(iter *argIter) Cmd
 }
 
@@ -31,14 +31,14 @@ type Command[T any] struct {
 	flags       []*Flag[T]
 	subcommands []Cmd
 	state       T
-	action      func(ctx Context[T], value string)
+	action      func(ctx Context[T], value string) error
 }
 
 func NewCommand[T any](name string, init T) *Command[T] {
 	return &Command[T]{
 		name:   name,
 		state:  init,
-		action: func(ctx Context[T], value string) {},
+		action: func(ctx Context[T], value string) error { return nil },
 	}
 }
 
@@ -173,9 +173,10 @@ func (c *Command[T]) Version(version string) *Command[T] {
 	c.version = version
 
 	subCmd := NewCommand("version", Empty{}).
-		About("Print version info and exit").Action(func(ctx Context[Empty], value string) {
+		About("Print version info and exit").Action(func(ctx Context[Empty], value string) error {
 		fmt.Printf("%s version v%s\n", c.name, c.version)
 		os.Exit(0)
+		return nil
 	})
 	c.subcommands = append(c.subcommands, subCmd)
 
@@ -183,9 +184,10 @@ func (c *Command[T]) Version(version string) *Command[T] {
 		Short('V').
 		Long("version").
 		About("Print version info and exit").
-		Action(func(ctx Context[T], value string) {
+		Action(func(ctx Context[T], value string) error {
 			fmt.Printf("%s version v%s\n", ctx.cmd.name, ctx.cmd.version)
 			os.Exit(0)
+			return nil
 		})
 	c.flags = append(c.flags, flag)
 	return c
@@ -194,18 +196,20 @@ func (c *Command[T]) Version(version string) *Command[T] {
 func (c *Command[T]) Help(help string) *Command[T] {
 	helpCmd := NewCommand("help", Empty{}).
 		About("Print help message and exit").
-		Action(func(ctx Context[Empty], value string) {
+		Action(func(ctx Context[Empty], value string) error {
 			c.PrintHelp()
 			os.Exit(0)
+			return nil
 		})
 	c.subcommands = append(c.subcommands, helpCmd)
 	flag := NewFlag[T]("help").
 		Short('h').
 		Long("help").
 		About("Print help message and exit").
-		Action(func(ctx Context[T], value string) {
+		Action(func(ctx Context[T], value string) error {
 			c.PrintHelp()
 			os.Exit(0)
+			return nil
 		})
 	c.flags = append(c.flags, flag)
 	c.help = help
@@ -232,18 +236,18 @@ func (c *Command[T]) Subcommand(cmd Cmd) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) Action(action func(ctx Context[T], value string)) *Command[T] {
+func (c *Command[T]) Action(action func(ctx Context[T], value string) error) *Command[T] {
 	c.action = action
 	return c
 }
 
 /* Action running */
 
-func (c *Command[T]) Apply(args []string) {
-	c.apply(newArgsIter(args))
+func (c *Command[T]) Apply(args []string) error {
+	return c.apply(newArgsIter(args))
 }
 
-func (c *Command[T]) apply(iter *argIter) {
+func (c *Command[T]) apply(iter *argIter) error {
 	iter.next() // consume the command name
 	cmdArg := ""
 	for iter.hasNext() {
@@ -256,10 +260,10 @@ func (c *Command[T]) apply(iter *argIter) {
 			break
 		}
 	}
-	c.action(NewContext(c), cmdArg)
+	return c.action(NewContext(c), cmdArg)
 }
 
-func (c *Command[T]) applyFlag(iter *argIter) {
+func (c *Command[T]) applyFlag(iter *argIter) error {
 	// get the token for the flag we're looking at
 	flagToken := iter.next()
 	if len(flagToken) < 2 {
@@ -286,7 +290,7 @@ func (c *Command[T]) applyFlag(iter *argIter) {
 		value = iter.next()
 	}
 
-	flag.action(NewContext(c), value)
+	return flag.action(NewContext(c), value)
 }
 
 func (c *Command[T]) nextSubcmd(iter *argIter) Cmd {

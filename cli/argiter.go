@@ -13,7 +13,7 @@ func newArgsIter(args []string) *argIter {
 }
 
 func (a *argIter) peek() string {
-	if a.cursor >= len(a.args) {
+	if !a.hasNext() {
 		return ""
 	}
 	return  a.args[a.cursor]
