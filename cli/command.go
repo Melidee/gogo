@@ -133,7 +133,7 @@ func (c *Command[T]) formatOptionsHelp() string {
 	longestPadSize := 0
 	for _, flag := range c.flags {
 		if len(flag.long)+len(argName(flag.argName)) > longestPadSize {
-			longestPadSize = 2 + len(flag.long) + len(argName(flag.argName))
+			longestPadSize = 4 + len(flag.long) + len(argName(flag.argName))
 		}
 	}
 
@@ -141,9 +141,9 @@ func (c *Command[T]) formatOptionsHelp() string {
 	for _, flag := range c.flags {
 		short := "    "
 		if flag.short != 0 {
-			short = Style("-"+string(flag.short), Blue)
+			short = Style("-"+string(flag.short), Blue) + ", "
 		}
-		help += "\n    " + short + ", " + Style("--"+flag.long, Blue)
+		help += "\n    " + short + Style("--"+flag.long, Blue)
 		if flag.argName != "" {
 			help += argName(flag.argName)
 		}
