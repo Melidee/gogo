@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/Melidee/gogo/cli"
-	"github.com/go-git/go-git/v6"
 )
 
 func main() {
@@ -75,53 +72,4 @@ type Add struct {
 
 func NewAdd() Add {
 	return Add{}
-}
-
-type Init struct {
-	isLib       bool
-	gitInit     bool
-	packageName string
-}
-
-func NewInit() Init {
-	return Init{
-		isLib:       false,
-		gitInit:     true,
-		packageName: "",
-	}
-}
-
-func (i Init) Init(pkgURL string) error {
-	if pkgURL == "" {
-		panic("no package name")
-	}
-	os.Mkdir(pkgURL, 0755)
-	os.Chdir(pkgURL)
-
-	if i.gitInit {
-		git.PlainInit(".", false, git.WithDefaultBranch("main"))
-	}
-	makeGoMod(pkgURL)
-	return nil
-}
-
-func makeGoMod(pkgName string) error {
-	_, err := os.Stat("go.mod")
-	if !errors.Is(err, os.ErrNotExist) {
-		return errors.New("")
-	}
-
-	goVersion := runtime.Version()
-	if goVersion == "" || goVersion == "unknown" {
-		panic("unknown go version")
-	}
-	goVersion = goVersion[2:] // remove "go" prefix
-
-	contents := fmt.Sprintf("module %s\n\ngo %s", pkgName, goVersion)
-	f, err := os.Create("go.mod")
-	if err != nil {
-		panic("failed to create go mod file")
-	}
-	f.WriteString(contents)
-	return nil
 }
