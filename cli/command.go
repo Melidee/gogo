@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/acarl005/stripansi"
 )
 
 type Cmd interface {
@@ -145,14 +147,14 @@ func (c *Command[T]) formatCommandsHelp() string {
 
 func (c *Command[T]) formatOptionsHelp() string {
 	// format short and long flags
-	var flagStrings []string 
+	var flagStrings []string
 	for _, flag := range c.flags {
 		s := "    "
 		if flag.short != 0 {
 			short := fmt.Sprintf("-%c", flag.short)
 			s = Style(short, Blue) + ", "
 		}
-		s += Style("--" + flag.long, Blue)
+		s += Style("--"+flag.long, Blue)
 		if flag.argName != "" {
 			s += " <" + flag.argName + ">"
 		}
@@ -163,15 +165,17 @@ func (c *Command[T]) formatOptionsHelp() string {
 	// find the longest flag string to calculate how much padding to add
 	longestFlag := 0
 	for _, flagStr := range flagStrings {
-		if longestFlag < len(flagStr) {
-			longestFlag = len(flagStr)
+		// strip ansi characters to get accurate length
+		stripped := stripansi.Strip(flagStr)
+		if longestFlag < len(stripped) {
+			longestFlag = len(stripped)
 		}
 	}
-	
+
 	// add padding and about text to flags
 	for i, flag := range c.flags {
 		flagStr := flagStrings[i]
-		padSize := longestFlag - len(flagStr)
+		padSize := longestFlag - len(stripansi.Strip(flagStr))
 		pad := strings.Repeat(" ", padSize)
 		flagStrings[i] = flagStr + pad + flag.about
 	}

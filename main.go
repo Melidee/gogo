@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/Melidee/gogo/cli"
 	"github.com/go-git/go-git/v6"
@@ -16,24 +15,6 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-}
-
-// resolve returns the value of a configuration flag from a variety of sources.
-// The symbol to resolve should be given in kebab-case
-// 
-// The precedence of sources is as follows:
-// Command line flags, environment variables, configuration values, then default values.
-func resolve(symbol string) string {
-	// env variables are typically in SCREAMING_SNAKE_CASE, so we convert the 
-	// kebab-case symbol to SCREAMING_SNAKE_CASE
-	screamingSnake := kebabToScreamingSnake(symbol)
-	env := os.Getenv(screamingSnake)
-	return env
-}
-
-func kebabToScreamingSnake(s string) string {
-	upper := strings.ToUpper(s)
-	return strings.Replace(upper, "-", "_", -1)
 }
 
 func Command() *cli.Command[cli.Empty] {
@@ -129,7 +110,7 @@ func makeGoMod(pkgName string) error {
 	if !errors.Is(err, os.ErrNotExist) {
 		return errors.New("")
 	}
-	
+
 	goVersion := runtime.Version()
 	if goVersion == "" || goVersion == "unknown" {
 		panic("unknown go version")
@@ -144,4 +125,3 @@ func makeGoMod(pkgName string) error {
 	f.WriteString(contents)
 	return nil
 }
-
