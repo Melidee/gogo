@@ -117,7 +117,7 @@ func (c *Command[T]) GetHelpString() string {
 }
 
 func (c *Command[T]) Help() *Command[T] {
-	
+
 	return c
 }
 
@@ -144,39 +144,40 @@ func (c *Command[T]) formatCommandsHelp() string {
 }
 
 func (c *Command[T]) formatOptionsHelp() string {
-	// TODO: refactor this
-	if len(c.flags) == 0 {
-		return ""
-	}
-
-	argName := func(s string) string {
-		if s == "" {
-			return ""
-		}
-		return " <" + s + "> "
-	}
-
-	longestPadSize := 0
+	// format short and long flags
+	var flagStrings []string 
 	for _, flag := range c.flags {
-		if len(flag.long)+len(argName(flag.argName)) > longestPadSize {
-			longestPadSize = 4 + len(flag.long) + len(argName(flag.argName))
-		}
-	}
-
-	help := "\n\n" + Style("Options", Green) + ":"
-	for _, flag := range c.flags {
-		short := "    "
+		s := "    "
 		if flag.short != 0 {
-			short = Style("-"+string(flag.short), Blue) + ", "
+			short := fmt.Sprintf("-%c", flag.short)
+			s = Style(short, Blue) + ", "
 		}
-		help += "\n    " + short + Style("--"+flag.long, Blue)
+		s += Style("--" + flag.long, Blue)
 		if flag.argName != "" {
-			help += argName(flag.argName)
+			s += " <" + flag.argName + ">"
 		}
-		pad := strings.Repeat(" ", longestPadSize-len(flag.long)-len(argName(flag.argName)))
-		help += pad + flag.about
+		s = "    " + s + "  " // add padding
+		flagStrings = append(flagStrings, s)
 	}
-	return help
+
+	// find the longest flag string to calculate how much padding to add
+	longestFlag := 0
+	for _, flagStr := range flagStrings {
+		if longestFlag < len(flagStr) {
+			longestFlag = len(flagStr)
+		}
+	}
+	
+	// add padding and about text to flags
+	for i, flag := range c.flags {
+		flagStr := flagStrings[i]
+		padSize := longestFlag - len(flagStr)
+		pad := strings.Repeat(" ", padSize)
+		flagStrings[i] = flagStr + pad + flag.about
+	}
+
+	header := "\n\n" + Style("Options", Green) + ":\n"
+	return header + strings.Join(flagStrings, "\n")
 }
 
 func (c *Command[T]) PrintHelp() {
