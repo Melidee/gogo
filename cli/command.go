@@ -248,11 +248,11 @@ func (c *Command[T]) Action(action func(ctx Context[T], value string) error) *Co
 /* Action running */
 
 func (c *Command[T]) Apply(args []string) error {
-	c.init()
 	return c.apply(newArgsIter(args))
 }
 
 func (c *Command[T]) apply(iter *argIter) error {
+	c.init()
 	iter.next() // consume the command name
 	cmdArg := ""
 	for iter.hasNext() {
