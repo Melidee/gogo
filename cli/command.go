@@ -11,7 +11,6 @@ type Cmd interface {
 	GetAuthor() string
 	GetVersion() string
 	GetAbout() string
-	GetHelp() string
 	Apply(args []string) error
 	apply(iter *argIter) error
 	applyFlag(iter *argIter) error
@@ -21,13 +20,12 @@ type Cmd interface {
 type Empty struct{}
 
 type Command[T any] struct {
-	name    string
-	author  string
-	version string
-	about   string
-	usage   string
-	help    string
-
+	name        string
+	author      string
+	version     string
+	about       string
+	usage       string
+	customHelp  func(Command[T]) string
 	flags       []*Flag[T]
 	subcommands []Cmd
 	state       T
@@ -44,6 +42,33 @@ func NewCommand[T any](name string, init T) *Command[T] {
 
 func SimpleCommand(name string) *Command[Empty] {
 	return NewCommand(name, Empty{})
+}
+
+func (c *Command[T]) init() {
+	if c.customHelp == nil {
+		c.addHelpCommands()
+	}
+}
+
+func (c *Command[T]) addHelpCommands() {
+	helpCmd := NewCommand("help", Empty{}).
+		About("Print help message and exit").
+		Action(func(ctx Context[Empty], value string) error {
+			c.PrintHelp()
+			os.Exit(0)
+			return nil
+		})
+	c.subcommands = append(c.subcommands, helpCmd)
+	flag := NewFlag[T]("help").
+		Short('h').
+		Long("help").
+		About("Print help message and exit").
+		Action(func(ctx Context[T], value string) error {
+			c.PrintHelp()
+			os.Exit(0)
+			return nil
+		})
+	c.flags = append(c.flags, flag)
 }
 
 /* --- Getters --- */
@@ -68,10 +93,6 @@ func (c *Command[T]) GetUsage() string {
 	return c.usage
 }
 
-func (c *Command[T]) GetHelp() string {
-	return c.help
-}
-
 /* Help formatting */
 
 func (c *Command[T]) GetHelpString() string {
@@ -93,6 +114,11 @@ func (c *Command[T]) GetHelpString() string {
 	help += c.formatCommandsHelp()
 	help += c.formatOptionsHelp()
 	return help
+}
+
+func (c *Command[T]) Help() *Command[T] {
+	
+	return c
 }
 
 func (c *Command[T]) formatCommandsHelp() string {
@@ -193,29 +219,6 @@ func (c *Command[T]) Version(version string) *Command[T] {
 	return c
 }
 
-func (c *Command[T]) Help(help string) *Command[T] {
-	helpCmd := NewCommand("help", Empty{}).
-		About("Print help message and exit").
-		Action(func(ctx Context[Empty], value string) error {
-			c.PrintHelp()
-			os.Exit(0)
-			return nil
-		})
-	c.subcommands = append(c.subcommands, helpCmd)
-	flag := NewFlag[T]("help").
-		Short('h').
-		Long("help").
-		About("Print help message and exit").
-		Action(func(ctx Context[T], value string) error {
-			c.PrintHelp()
-			os.Exit(0)
-			return nil
-		})
-	c.flags = append(c.flags, flag)
-	c.help = help
-	return c
-}
-
 func (c *Command[T]) About(about string) *Command[T] {
 	c.about = about
 	return c
@@ -244,6 +247,7 @@ func (c *Command[T]) Action(action func(ctx Context[T], value string) error) *Co
 /* Action running */
 
 func (c *Command[T]) Apply(args []string) error {
+	c.init()
 	return c.apply(newArgsIter(args))
 }
 
