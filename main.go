@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"os/exec"
+	"runtime"
+	"strings"
 
 	"github.com/Melidee/gogo/cli"
+	"github.com/go-git/go-git/v6"
 )
 
 func main() {
@@ -15,22 +18,38 @@ func main() {
 	}
 }
 
+// resolve returns the value of a configuration flag from a variety of sources.
+// The symbol to resolve should be given in kebab-case
+// 
+// The precedence of sources is as follows:
+// Command line flags, environment variables, configuration values, then default values.
+func resolve(symbol string) string {
+	// env variables are typically in SCREAMING_SNAKE_CASE, so we convert the 
+	// kebab-case symbol to SCREAMING_SNAKE_CASE
+	screamingSnake := kebabToScreamingSnake(symbol)
+	env := os.Getenv(screamingSnake)
+	return env
+}
+
+func kebabToScreamingSnake(s string) string {
+	upper := strings.ToUpper(s)
+	return strings.Replace(upper, "-", "_", -1)
+}
+
 func Command() *cli.Command[cli.Empty] {
 	return cli.NewCommand("gogo", cli.Empty{}).
 		About("A simple CLI tool for Go.").
 		Version("0.1.0").
 		Author("Melidee <github.com/Melidee>").
-		Help("").
 		Usage("gogo [COMMAND] [OPTIONS]...").
-		Action(func(ctx cli.Context[cli.Empty], value string) error { return nil}).
+		Action(func(ctx cli.Context[cli.Empty], value string) error { return nil }).
 		Subcommand(SearchCommand()).
-		Subcommand(InitCommand())
+		Subcommand(InitCommand)
 }
 
 func SearchCommand() *cli.Command[Search] {
 	return cli.NewCommand("search", NewSearch()).
 		About("Search for packages in the go package repository.").
-		Help("").
 		Action(func(ctx cli.Context[Search], query string) error {
 			search := ctx.State()
 			search.Query = query
@@ -91,28 +110,38 @@ func NewInit() Init {
 	}
 }
 
-func InitCommand() *cli.Command[Init] {
-	return cli.NewCommand("init", NewInit()).
-		About("Initialize a new go project").
-		Help("").
-		Action(func(ctx cli.Context[Init], pkgName string) error {
-			if pkgName == "" {
-				panic("no package name")
-			}
-			os.Mkdir(pkgName, 0755)
-			os.Chdir("pkgName")
-			if ctx.State().gitInit {
-				exec.Command("git", "init", "-b", "main")
-			}
-			return nil
-		}).
-		Flag(cli.NewFlag[Init]("lib").
-			Long("lib").
-			About("Scaffold this project as a library, without an executable").
-			ActionSetTrue(func(state Init) *bool { return &state.isLib })).
-		Flag(cli.NewFlag[Init]("no-git").
-			Long("no-git").
-			About("Do not initialize a git repository").
-			ActionSetFalse(func(state Init) *bool { return &state.gitInit }))
+func (i Init) Init(pkgURL string) error {
+	if pkgURL == "" {
+		panic("no package name")
+	}
+	os.Mkdir(pkgURL, 0755)
+	os.Chdir(pkgURL)
 
+	if i.gitInit {
+		git.PlainInit(".", false, git.WithDefaultBranch("main"))
+	}
+	makeGoMod(pkgURL)
+	return nil
 }
+
+func makeGoMod(pkgName string) error {
+	_, err := os.Stat("go.mod")
+	if !errors.Is(err, os.ErrNotExist) {
+		return errors.New("")
+	}
+	
+	goVersion := runtime.Version()
+	if goVersion == "" || goVersion == "unknown" {
+		panic("unknown go version")
+	}
+	goVersion = goVersion[2:] // remove "go" prefix
+
+	contents := fmt.Sprintf("module %s\n\ngo %s", pkgName, goVersion)
+	f, err := os.Create("go.mod")
+	if err != nil {
+		panic("failed to create go mod file")
+	}
+	f.WriteString(contents)
+	return nil
+}
+
