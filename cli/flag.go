@@ -1,7 +1,5 @@
 package cli
 
-import "strconv"
-
 type Flag[T any] struct {
 	name       string
 	short      rune
@@ -58,37 +56,21 @@ func (f *Flag[T]) Action(action func(ctx Context[T], value string) error) *Flag[
 }
 
 func (f *Flag[T]) ActionSet(dest func(state T) *string) *Flag[T] {
-	f.action = func(ctx Context[T], value string) error {
-		*dest(*ctx.State()) = value
-		return nil
-	}
+	f.action = ActionSet(dest)
 	return f
 }
 
 func (f *Flag[T]) ActionSetInt(dest func(state T) *int) *Flag[T] {
-	f.action = func(ctx Context[T], value string) error {
-		num, err := strconv.Atoi(value)
-		if err != nil {
-			return err
-		}
-		*dest(*ctx.State()) = num
-		return nil
-	}
+	f.action = ActionSetInt(dest)
 	return f
 }
 
 func (f *Flag[T]) ActionSetTrue(dest func(state T) *bool) *Flag[T] {
-	f.action = func(ctx Context[T], value string) error {
-		*dest(*ctx.State()) = true
-		return nil
-	}
+	f.action = ActionSetTrue(dest)
 	return f
 }
 
 func (f *Flag[T]) ActionSetFalse(dest func(state T) *bool) *Flag[T] {
-	f.action = func(ctx Context[T], value string) error {
-		*dest(*ctx.State()) = false
-		return nil
-	}
+	f.action = ActionSetFalse(dest)
 	return f
 }
